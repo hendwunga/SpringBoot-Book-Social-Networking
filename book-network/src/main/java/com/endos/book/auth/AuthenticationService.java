@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -101,6 +102,9 @@ public class AuthenticationService {
         return AuthenticationResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .roles(user.getRoles().stream()
+                        .map(role -> role.getName())
+                        .collect(Collectors.toList()))
                 .build();
     }
 
@@ -223,6 +227,9 @@ public class AuthenticationService {
         var authResponse = AuthenticationResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
+                .roles(user.getRoles().stream()
+                        .map(role -> role.getName())
+                        .collect(Collectors.toList()))
                 .build();
         new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
     }
