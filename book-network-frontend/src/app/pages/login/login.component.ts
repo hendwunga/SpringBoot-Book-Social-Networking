@@ -28,7 +28,8 @@ export class LoginComponent {
       body: this.authRequest
     }).subscribe({
       next: (res) => {
-        this.tokenService.token = res.token as string;
+        this.tokenService.token = res.accessToken as string;
+        this.tokenService.refreshToken = res.refreshToken as string;
         this.router.navigate(['books']);
       },
       error: (err) => {

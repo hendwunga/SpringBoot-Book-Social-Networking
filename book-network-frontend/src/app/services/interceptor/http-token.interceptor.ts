@@ -1,0 +1,20 @@
+import {HttpEvent, HttpHandler, HttpInterceptor, HttpRequest} from '@angular/common/http';
+import {Observable} from 'rxjs';
+import {TokenService} from '../token/token.service';
+import {inject} from '@angular/core';
+
+export class HttpTokenInterceptor implements HttpInterceptor {
+  tokenService = inject(TokenService);
+
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    const token = this.tokenService.token;
+    if (token) {
+      req = req.clone({
+        setHeaders: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+    }
+    return next.handle(req);
+  }
+}
