@@ -1,6 +1,8 @@
 package com.endos.book.handler;
 
 import com.endos.book.exception.OperationNotPermittedException;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.mail.MessagingException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -16,6 +18,8 @@ import java.util.Set;
 import static com.endos.book.handler.BusinessErrorCodes.ACCOUNT_DISABLED;
 import static com.endos.book.handler.BusinessErrorCodes.ACCOUNT_LOCKED;
 import static com.endos.book.handler.BusinessErrorCodes.BAD_CREDENTIALS;
+import static com.endos.book.handler.BusinessErrorCodes.JWT_EXPIRED;
+import static com.endos.book.handler.BusinessErrorCodes.JWT_INVALID;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
@@ -97,6 +101,33 @@ public class GlobalExceptionHandler {
                 .body(
                         ExceptionResponse.builder()
                                 .validationError(errors)
+                                .build()
+                );
+    }
+
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ExceptionResponse> handleException(ExpiredJwtException exp) {
+        return ResponseEntity
+                .status(UNAUTHORIZED)
+                .body(
+                        ExceptionResponse.builder()
+                                .businessErrorCode(JWT_EXPIRED.getCode())
+                                .businessErrorDescription(JWT_EXPIRED.getDescription())
+                                .error("Access token has expired. Please use your refresh token to get a new access token")
+                                .build()
+                );
+    }
+
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<ExceptionResponse> handleException(JwtException exp) {
+        return ResponseEntity
+                .status(UNAUTHORIZED)
+                .body(
+                        ExceptionResponse.builder()
+                                .businessErrorCode(JWT_INVALID.getCode())
+                                .businessErrorDescription(JWT_INVALID.getDescription())
+                                .error(exp.getMessage())
                                 .build()
                 );
     }

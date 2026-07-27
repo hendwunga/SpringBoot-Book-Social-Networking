@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_IMPLEMENTED;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Getter
 public enum BusinessErrorCodes {
@@ -15,6 +16,8 @@ public enum BusinessErrorCodes {
     ACCOUNT_LOCKED(302, FORBIDDEN, "User account is locked"),
     ACCOUNT_DISABLED(303, FORBIDDEN, "User account is disabled"),
     BAD_CREDENTIALS(304, FORBIDDEN, "Login and / or Password is incorrect"),
+    JWT_EXPIRED(305, UNAUTHORIZED, "Access token has expired. Please use the refresh token to get a new access token"),
+    JWT_INVALID(306, UNAUTHORIZED, "Invalid JWT token"),
     ;
 
     private final int code;
