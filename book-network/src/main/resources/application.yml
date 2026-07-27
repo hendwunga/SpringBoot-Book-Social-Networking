@@ -6,6 +6,9 @@ spring:
       max-file-size: 50MB
 springdoc:
   default-produces-media-type: application/json
+  swagger-ui:
+    url: /api/v1/v3/api-docs
+    config-url: /api/v1/v3/api-docs/swagger-config
 server:
   servlet:
     context-path: /api/v1/
