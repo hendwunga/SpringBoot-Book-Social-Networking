@@ -10,4 +10,6 @@ export { FeedbackResponse } from './models/feedback-response';
 export { PageResponseBookResponse } from './models/page-response-book-response';
 export { PageResponseBorrowedBookResponse } from './models/page-response-borrowed-book-response';
 export { PageResponseFeedbackResponse } from './models/page-response-feedback-response';
+export { PageResponseUserResponse } from './models/page-response-user-response';
 export { RegistrationRequest } from './models/registration-request';
+export { UserResponse } from './models/user-response';

@@ -3,5 +3,5 @@
 export interface AuthenticationResponse {
   accessToken?: string;
   refreshToken?: string;
-  roles?: string[];
+  roles?: Array<string>;
 }

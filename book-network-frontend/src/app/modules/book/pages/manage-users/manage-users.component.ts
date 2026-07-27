@@ -33,7 +33,7 @@ export class ManageUsersComponent implements OnInit {
 
   toggleLock(user: UserResponse) {
     this.message = '';
-    this.userService.toggleAccountLock(user.id as number).subscribe({
+    this.userService.toggleAccountLock({ 'user-id': user.id as number }).subscribe({
       next: () => {
         user.accountLocked = !user.accountLocked;
         this.level = 'success';
@@ -48,7 +48,7 @@ export class ManageUsersComponent implements OnInit {
 
   toggleEnabled(user: UserResponse) {
     this.message = '';
-    this.userService.toggleAccountEnabled(user.id as number).subscribe({
+    this.userService.toggleAccountEnabled({ 'user-id': user.id as number }).subscribe({
       next: () => {
         user.enabled = !user.enabled;
         this.level = 'success';
