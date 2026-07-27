@@ -30,7 +30,12 @@ export class LoginComponent {
       next: (res) => {
         this.tokenService.token = res.accessToken as string;
         this.tokenService.refreshToken = res.refreshToken as string;
-        this.router.navigate(['books']);
+        this.tokenService.roles = res.roles as string[];
+        if (res.roles?.includes('ADMIN')) {
+          this.router.navigate(['books/manage-users']);
+        } else {
+          this.router.navigate(['books']);
+        }
       },
       error: (err) => {
         console.log(err);

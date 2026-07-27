@@ -13,6 +13,7 @@ import { ManageBookComponent } from './pages/manage-book/manage-book.component';
 import { BorrowedBookListComponent } from './pages/borrowed-book-list/borrowed-book-list.component';
 import { ReturnBooksComponent } from './pages/return-books/return-books.component';
 import { BookDetailsComponent } from './pages/book-details/book-details.component';
+import { ManageUsersComponent } from './pages/manage-users/manage-users.component';
 
 
 @NgModule({
@@ -26,7 +27,8 @@ import { BookDetailsComponent } from './pages/book-details/book-details.componen
     ManageBookComponent,
     BorrowedBookListComponent,
     ReturnBooksComponent,
-    BookDetailsComponent
+    BookDetailsComponent,
+    ManageUsersComponent
   ],
   imports: [
     CommonModule,
