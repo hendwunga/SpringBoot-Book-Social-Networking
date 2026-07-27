@@ -92,6 +92,8 @@ public class AuthenticationService {
         var user = (User) auth.getPrincipal();
         claims.put("fullName", user.getFullName());
 
+        revokeAllUserTokens(user);
+
         var accessToken = jwtService.generateToken(claims, user);
         var refreshToken = generateRefreshToken();
         saveUserToken(user, accessToken, refreshToken);
@@ -198,25 +200,31 @@ public class AuthenticationService {
             HttpServletResponse response
     ) throws IOException {
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        final String refreshToken;
-        final String userEmail;
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return;
         }
-        refreshToken = authHeader.substring(7);
-        userEmail = jwtService.extractUsername(refreshToken);
-        if (userEmail != null) {
-            var user = this.userRepository.findByEmail(userEmail)
-                    .orElseThrow();
-            if (jwtService.isTokenValid(refreshToken, user) && !jwtService.isTokenExpired(refreshToken)) { // Memeriksa validitas dan kedaluwarsa
-                var accessToken = jwtService.generateToken(user);
-                var authResponse = AuthenticationResponse.builder()
-                        .accessToken(accessToken)
-                        .refreshToken(refreshToken)
-                        .build();
-                new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
-            }
+        final String refreshToken = authHeader.substring(7);
+
+        var savedToken = tokenRepository.findByRefreshToken(refreshToken)
+                .orElse(null);
+
+        if (savedToken == null || savedToken.isExpired() || savedToken.isRevoked()) {
+            return;
         }
+
+        var user = savedToken.getUser();
+
+        revokeAllUserTokens(user);
+
+        var newAccessToken = jwtService.generateToken(user);
+        var newRefreshToken = generateRefreshToken();
+        saveUserToken(user, newAccessToken, newRefreshToken);
+
+        var authResponse = AuthenticationResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .build();
+        new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
     }
 
     private String generateRefreshToken() {
