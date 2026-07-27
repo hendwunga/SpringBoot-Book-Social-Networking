@@ -8,6 +8,7 @@ import {ManageBookComponent} from './pages/manage-book/manage-book.component';
 import {BorrowedBookListComponent} from './pages/borrowed-book-list/borrowed-book-list.component';
 import {ReturnBooksComponent} from './pages/return-books/return-books.component';
 import {BookDetailsComponent} from './pages/book-details/book-details.component';
+import {ManageUsersComponent} from './pages/manage-users/manage-users.component';
 
 const routes: Routes = [
   {
@@ -49,7 +50,12 @@ const routes: Routes = [
     {
        path: 'manage/:bookId',
        component: ManageBookComponent,
-       canActivate: [authGuard]
+                     canActivate: [authGuard]
+      },
+      {
+        path: 'manage-users',
+        component: ManageUsersComponent,
+                     canActivate: [authGuard]
       }
         ]
   }

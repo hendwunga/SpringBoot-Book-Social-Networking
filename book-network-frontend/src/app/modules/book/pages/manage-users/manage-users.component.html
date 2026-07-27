@@ -1,0 +1,76 @@
+<div class="container mt-3">
+  <h2>Manage Users</h2>
+
+  <div *ngIf="message" class="alert" [ngClass]="{'alert-success': level === 'success', 'alert-danger': level === 'error'}">
+    {{ message }}
+  </div>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Roles</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let user of users.content">
+        <td>{{ user.id }}</td>
+        <td>{{ user.firstname }} {{ user.lastname }}</td>
+        <td>{{ user.email }}</td>
+        <td>
+          <span *ngFor="let role of user.roles" class="badge me-1"
+                [ngClass]="{'bg-primary': role === 'ADMIN', 'bg-secondary': role === 'USER'}">
+            {{ role }}
+          </span>
+        </td>
+        <td>
+          <span *ngIf="user.enabled" class="badge bg-success">Active</span>
+          <span *ngIf="!user.enabled" class="badge bg-warning">Inactive</span>
+          <span *ngIf="user.accountLocked" class="badge bg-danger ms-1">Locked</span>
+        </td>
+        <td>{{ user.createdDate | date:'medium' }}</td>
+        <td>
+          <button class="btn btn-sm me-1"
+                  [ngClass]="{'btn-warning': !user.accountLocked, 'btn-success': user.accountLocked}"
+                  (click)="toggleLock(user)"
+                  title="{{ user.accountLocked ? 'Unlock' : 'Lock' }} user">
+            <i class="fas" [ngClass]="{'fa-lock': !user.accountLocked, 'fa-unlock': user.accountLocked}"></i>
+          </button>
+          <button class="btn btn-sm"
+                  [ngClass]="{'btn-danger': user.enabled, 'btn-success': !user.enabled}"
+                  (click)="toggleEnabled(user)"
+                  title="{{ user.enabled ? 'Disable' : 'Enable' }} user">
+            <i class="fas" [ngClass]="{'fa-ban': user.enabled, 'fa-check': !user.enabled}"></i>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  <nav *ngIf="users.totalPages && users.totalPages > 1">
+    <ul class="pagination">
+      <li class="page-item" [ngClass]="{'disabled': page === 0}">
+        <a class="page-link" (click)="goToFirstPage()">First</a>
+      </li>
+      <li class="page-item" [ngClass]="{'disabled': page === 0}">
+        <a class="page-link" (click)="goToPreviousPage()">Previous</a>
+      </li>
+      <li class="page-item" *ngFor="let p of pages"
+          [ngClass]="{'active': p === page}">
+        <a class="page-link" (click)="gotToPage(p)">{{ p + 1 }}</a>
+      </li>
+      <li class="page-item" [ngClass]="{'disabled': isLastPage}">
+        <a class="page-link" (click)="goToNextPage()">Next</a>
+      </li>
+      <li class="page-item" [ngClass]="{'disabled': isLastPage}">
+        <a class="page-link" (click)="goToLastPage()">Last</a>
+      </li>
+    </ul>
+  </nav>
+</div>
