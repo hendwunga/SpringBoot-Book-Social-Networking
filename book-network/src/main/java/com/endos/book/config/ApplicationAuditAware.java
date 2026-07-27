@@ -1,6 +1,6 @@
 package com.endos.book.config;
 
-import com.endos.book.user.User;
+import com.endos.book.entity.User;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;

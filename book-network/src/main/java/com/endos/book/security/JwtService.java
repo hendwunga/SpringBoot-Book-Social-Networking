@@ -1,6 +1,6 @@
 package com.endos.book.security;
 
-import com.endos.book.user.TokenRepository;
+import com.endos.book.repository.TokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -8,7 +8,6 @@ import io.jsonwebtoken.security.Keys;
 import lombok.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -48,7 +47,7 @@ public class JwtService {
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
-        return buildToken(extraClaims, userDetails, jwtExpiration); // Gunakan masa berlaku token akses
+        return buildToken(extraClaims, userDetails, jwtExpiration);
     }
 
     private String buildToken(Map<String, Object> extraClaims, UserDetails userDetails, long expiration) {
@@ -84,7 +83,7 @@ public class JwtService {
         if (!isRefreshTokenValid(refreshToken, userDetails)) {
             throw new IllegalArgumentException("Invalid refresh token");
         }
-        return generateToken(userDetails); // Generate a new access token
+        return generateToken(userDetails);
     }
 
     public boolean isTokenExpired(String token) {
