@@ -100,71 +100,352 @@ Register -> Verify via Email -> Login -> Share Your Books -> Others Borrow -> Re
 
 ## Architecture
 
-### System Overview
+### High-Level System Overview
+
+The system follows a **3-tier architecture** with clear separation between presentation, business logic, and data access layers.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      CLIENT                              │
-│                                                          │
-│  ┌──────────────┐         ┌──────────────────────────┐  │
-│  │   Browser     │ ──────> │  Angular Frontend (:4200) │  │
-│  │               │ <────── │  - Login/Register         │  │
-│  │               │         │  - Book Management        │  │
-│  │               │         │  - Admin Panel            │  │
-│  └──────────────┘         └──────────┬───────────────┘  │
-│                                       │                  │
-└───────────────────────────────────────┼──────────────────┘
-                                        │ HTTP/REST
-┌───────────────────────────────────────┼──────────────────┐
-│                    SERVER             │                   │
-│                                       v                  │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │          Spring Boot API (:8088/api/v1)           │   │
-│  │                                                    │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌──────────┐ │   │
-│  │  │   Security   │  │  Controllers │  │ Services │ │   │
-│  │  │  JWT Filter  │  │  Auth/User/  │  │ Business │ │   │
-│  │  │  RBAC        │  │  Book/Feedback│  │ Logic    │ │   │
-│  │  └─────────────┘  └─────────────┘  └──────────┘ │   │
-│  │                       │                           │   │
-│  │  ┌───────────────────┐│  ┌─────────────────────┐ │   │
-│  │  │  Email Service    ││  │  File Storage        │ │   │
-│  │  │  (Thymeleaf)      ││  │  (Book Covers)       │ │   │
-│  │  └───────────────────┘│  └─────────────────────┘ │   │
-│  └───────────┬───────────┘───────────┬───────────────┘   │
-│              │                       │                    │
-└──────────────┼───────────────────────┼────────────────────┘
-               │                       │
-               v                       v
-    ┌──────────────────┐    ┌──────────────────┐
-    │   PostgreSQL      │    │    MailDev        │
-    │   (:5432)         │    │    SMTP (:1025)   │
-    │   book_social_    │    │    Web UI (:1080) │
-    │   network         │    │                    │
-    └──────────────────┘    └──────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          PRESENTATION TIER                               │
+│                                                                          │
+│   ┌─────────────────────────────────────────────────────────────────┐   │
+│   │                   Angular Frontend (:4200)                      │   │
+│   │                                                                 │   │
+│   │   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐ │   │
+│   │   │  Login   │  │  Register│  │  Book    │  │  Admin Panel │ │   │
+│   │   │  Page    │  │  Page    │  │  List    │  │  (USER Mgmt) │ │   │
+│   │   └────┬─────┘  └────┬─────┘  └────┬─────┘  └──────┬───────┘ │   │
+│   │        │              │              │                │          │   │
+│   │   ┌────▼──────────────▼──────────────▼────────────────▼───────┐ │   │
+│   │   │              HTTP Token Interceptor                       │ │   │
+│   │   │         (Injects Bearer token to every request)           │ │   │
+│   │   └──────────────────────────┬────────────────────────────────┘ │   │
+│   └──────────────────────────────┼──────────────────────────────────┘   │
+│                                  │                                      │
+└──────────────────────────────────┼──────────────────────────────────────┘
+                                   │  HTTP/REST (JSON)
+                                   │  Authorization: Bearer <jwt>
+┌──────────────────────────────────┼──────────────────────────────────────┐
+│                          APPLICATION TIER                                │
+│                                  │                                      │
+│   ┌──────────────────────────────▼──────────────────────────────────┐   │
+│   │              Spring Boot API (:8088/api/v1)                     │   │
+│   │                                                                 │   │
+│   │   ┌─────────────────────────────────────────────────────────┐   │   │
+│   │   │                 SECURITY LAYER                          │   │   │
+│   │   │                                                         │   │   │
+│   │   │   ┌────────────┐  ┌──────────────┐  ┌───────────────┐  │   │   │
+│   │   │   │ CorsFilter │─>│  JwtFilter   │─>│ Authentication│  │   │   │
+│   │   │   │ (CORS)     │  │ (validate &  │  │ Provider      │  │   │   │
+│   │   │   │            │  │  set auth)   │  │ (verify user) │  │   │   │
+│   │   │   └────────────┘  └──────────────┘  └───────────────┘  │   │   │
+│   │   └─────────────────────────────────────────────────────────┘   │   │
+│   │                              │                                  │   │
+│   │   ┌──────────────────────────▼──────────────────────────────┐   │   │
+│   │   │               CONTROLLER LAYER                           │   │   │
+│   │   │                                                          │   │   │
+│   │   │   ┌───────────────┐  ┌──────────────┐  ┌─────────────┐  │   │   │
+│   │   │   │ Authentication│  │     Book     │  │  Feedback   │  │   │   │
+│   │   │   │  Controller   │  │  Controller  │  │  Controller │  │   │   │
+│   │   │   │  /auth/*      │  │  /books/*    │  │  /feedbacks │  │   │   │
+│   │   │   └───────┬───────┘  └──────┬───────┘  └──────┬──────┘  │   │   │
+│   │   │           │                  │                  │          │   │   │
+│   │   │   ┌───────┴──────────────────┴──────────────────┴──────┐  │   │   │
+│   │   │   │             Validation (@Valid)                    │  │   │   │
+│   │   │   │   Request DTO ──> Validate ──> Forward to Service  │  │   │   │
+│   │   │   └────────────────────────┬───────────────────────────┘  │   │   │
+│   │   └────────────────────────────┼──────────────────────────────┘   │   │
+│   │                                │                                  │   │
+│   │   ┌────────────────────────────▼──────────────────────────────┐   │   │
+│   │   │                 SERVICE LAYER                              │   │   │
+│   │   │               (Interface + Impl)                          │   │   │
+│   │   │                                                           │   │   │
+│   │   │   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │   │   │
+│   │   │   │  AuthService │  │  BookService │  │ EmailService │   │   │   │
+│   │   │   │  Impl        │  │  Impl        │  │ Impl         │   │   │   │
+│   │   │   │              │  │              │  │              │   │   │   │
+│   │   │   │ • register   │  │ • CRUD       │  │ • sendEmail  │   │   │   │
+│   │   │   │ • login      │  │ • borrow     │  │ • templates  │   │   │   │
+│   │   │   │ • activate   │  │ • return     │  │              │   │   │   │
+│   │   │   │ • refresh    │  │ • approve    │  │              │   │   │   │
+│   │   │   └──────────────┘  └──────────────┘  └──────────────┘   │   │   │
+│   │   │                                                           │   │   │
+│   │   │   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │   │   │
+│   │   │   │UserService   │  │FeedbackSvc   │  │FileStorage   │   │   │   │
+│   │   │   │ Impl         │  │ Impl         │  │ Impl         │   │   │   │
+│   │   │   │              │  │              │  │              │   │   │   │
+│   │   │   │ • list users │  │ • save       │  │ • save file  │   │   │   │
+│   │   │   │ • lock/unlock│  │ • list       │  │ • read file  │   │   │   │
+│   │   │   │ • profile    │  │              │  │              │   │   │   │
+│   │   │   └──────────────┘  └──────────────┘  └──────────────┘   │   │   │
+│   │   └──────────────────────────────────────────────────────────┘   │   │
+│   │                              │                                   │   │
+│   │   ┌──────────────────────────▼───────────────────────────────┐   │   │
+│   │   │              REPOSITORY LAYER                             │   │   │
+│   │   │           (Spring Data JPA + Hibernate)                   │   │   │
+│   │   │                                                           │   │   │
+│   │   │   ┌──────────┐ ┌──────────┐ ┌────────┐ ┌──────────────┐  │   │   │
+│   │   │   │ BookRepo │ │ UserRepo │ │TokenRepo│ │FeedbackRepo │  │   │   │
+│   │   │   └──────────┘ └──────────┘ └────────┘ └──────────────┘  │   │   │
+│   │   │                                                           │   │   │
+│   │   │   ┌──────────┐ ┌──────────┐                               │   │   │
+│   │   │   │ RoleRepo │ │ HistoryRepo│                              │   │   │
+│   │   │   └──────────┘ └──────────┘                               │   │   │
+│   │   └──────────────────────────────────────────────────────────┘   │   │
+│   └──────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+└──────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                      ┌────────────┼────────────┐
+                      │            │             │
+                      ▼            ▼             ▼
+┌──────────────────────┐ ┌─────────────┐ ┌──────────────────┐
+│   PostgreSQL (:5432) │ │  MailDev    │ │   Local File     │
+│                      │ │             │ │   System         │
+│  ┌────────────────┐  │ │ SMTP :1025  │ │                  │
+│  │ book_social_   │  │ │ Web  :1080  │ │  book-network/   │
+│  │ network        │  │ │             │ │  uploads/        │
+│  │                │  │ │ Captures    │ │  users/{id}/     │
+│  │ Tables:        │  │ │ all emails  │ │  {cover}.png     │
+│  │ • _user        │  │ │ during dev  │ │                  │
+│  │ • role         │  │ │             │ │                  │
+│  │ • user_roles   │  │ └─────────────┘ └──────────────────┘
+│  │ • book         │  │
+│  │ • feedback     │  │
+│  │ • token        │  │
+│  │ • book_trans.. │  │
+│  └────────────────┘  │
+└──────────────────────┘
 ```
 
-### Request Flow
+### Request Lifecycle — Complete Flow
+
+This diagram shows exactly what happens from the moment a user clicks a button to the final response.
 
 ```
-Client Request
-      │
-      v
-┌─────────────┐    ┌──────────────┐    ┌─────────────────┐
-│  JwtFilter   │───>│  Controller   │───>│    Service       │
-│  (validate   │    │  (validate    │    │  (business       │
-│   token)     │    │   request)    │    │   logic)         │
-└─────────────┘    └──────────────┘    └────────┬────────┘
-                                                │
-                                        ┌───────v────────┐
-                                        │   Repository    │
-                                        │  (JPA/Hibernate)│
-                                        └───────┬────────┘
-                                                │
-                                        ┌───────v────────┐
-                                        │   PostgreSQL    │
-                                        └────────────────┘
+  USER ACTION                    BACKEND PROCESSING
+  ───────────                    ──────────────────
+
+  ┌──────────┐
+  │  User    │   Click "Borrow Book"
+  │  Browser │─────────────────────────────────────────────────────────┐
+  └──────────┘                                                        │
+                                                                      ▼
+                                                           ┌─────────────────┐
+                                                           │  Angular HTTP   │
+                                                           │  Interceptor    │
+                                                           │  Adds:          │
+                                                           │  Authorization: │
+                                                           │  Bearer <jwt>   │
+                                                           └────────┬────────┘
+                                                                    │
+                         ══════════════════════════════════════════════════════
+                                        SPRING BOOT API
+                         ══════════════════════════════════════════════════════
+                                                                    │
+                                                                    ▼
+                                                           ┌─────────────────┐
+                                                           │   CorsFilter    │
+                                                           │   Validates     │
+                                                           │   Origin header │
+                                                           └────────┬────────┘
+                                                                    │
+                                                                    ▼
+                                                           ┌─────────────────┐
+                                                           │   JwtFilter     │
+                                                           │                 │
+                                                           │ 1. Extract JWT  │
+                                                           │    from header  │
+                                                           │ 2. Parse email  │
+                                                           │ 3. Load User    │
+                                                           │ 4. Check token  │
+                                                           │    in DB        │
+                                                           │ 5. Set Security │
+                                                           │    Context      │
+                                                           └────────┬────────┘
+                                                                    │
+                                                     ┌──────────────┴──────────────┐
+                                                     │ Token valid?                 │
+                                                     │                             │
+                                               ┌─────▼─────┐                ┌──────▼──────┐
+                                               │    YES     │                │     NO      │
+                                               │ Continue   │                │  401 UNAUTH │
+                                               └─────┬─────┘                └─────────────┘
+                                                     │
+                                                     ▼
+                                            ┌─────────────────┐
+                                            │ BookController  │
+                                            │                 │
+                                            │ @PreAuthorize   │
+                                            │ hasAnyAuthority │
+                                            │ (USER,ADMIN)    │
+                                            └────────┬────────┘
+                                                     │
+                                                     ▼
+                                            ┌─────────────────┐
+                                            │  BookServiceImpl│
+                                            │                 │
+                                            │ 1. Get User     │
+                                            │    from Auth    │
+                                            │ 2. Find Book    │
+                                            │    by ID        │
+                                            │ 3. Check:       │
+                                            │   • not archived│
+                                            │   • shareable   │
+                                            │   • not own book│
+                                            │   • not borrowed│
+                                            │ 4. Create       │
+                                            │    Transaction  │
+                                            └────────┬────────┘
+                                                     │
+                                                     ▼
+                                            ┌─────────────────┐
+                                            │ BookTransaction │
+                                            │ HistoryRepository│
+                                            │                 │
+                                            │ INSERT INTO     │
+                                            │ book_transaction│
+                                            │ _history (...)  │
+                                            └────────┬────────┘
+                                                     │
+                                                     ▼
+                                            ┌─────────────────┐
+                                            │  Return HTTP    │
+                                            │  200 OK         │
+                                            │  Body: {id: 42} │
+                                            └────────┬────────┘
+                                                     │
+                         ══════════════════════════════════════════════════════
+                                                     │
+                                                     ▼
+                                            ┌─────────────────┐
+                                            │  Angular HTTP   │
+                                            │  Interceptor    │
+                                            │  Stores new JWT │
+                                            │  if refreshed   │
+                                            └────────┬────────┘
+                                                     │
+                                                     ▼
+                                            ┌─────────────────┐
+                                            │  UI Updates:    │
+                                            │  "Book borrowed │
+                                            │   successfully" │
+                                            └─────────────────┘
 ```
+
+### Authentication & JWT Flow
+
+This diagram shows the complete authentication lifecycle including registration, login, token refresh, and protected requests.
+
+```
+ REGISTRATION FLOW                     LOGIN FLOW
+ ─────────────────                     ──────────
+
+ POST /auth/register                   POST /auth/authenticate
+        │                                     │
+        ▼                                     ▼
+ ┌─────────────┐                      ┌──────────────┐
+ │ Create User │                      │ AuthManager  │
+ │ (enabled=F) │                      │ .authenticate│
+ └──────┬──────┘                      └──────┬───────┘
+        │                                     │
+        ▼                                     ▼
+ ┌─────────────┐                      ┌──────────────┐
+ │ Generate 6  │                      │ Validates    │
+ │ digit OTP   │                      │ email+pass   │
+ └──────┬──────┘                      └──────┬───────┘
+        │                                     │
+        ▼                                     ▼
+ ┌─────────────┐                      ┌──────────────┐
+ │ Save Token  │                      │ Revoke old   │
+ │ in DB       │                      │ tokens       │
+ └──────┬──────┘                      └──────┬───────┘
+        │                                     │
+        ▼                                     ▼
+ ┌─────────────┐                      ┌──────────────┐
+ │ Send Email  │                      │ Generate     │
+ │ via Thymeleaf│                     │ JWT + Refresh│
+ └──────┬──────┘                      └──────┬───────┘
+        │                                     │
+        ▼                                     ▼
+ ┌─────────────┐                      ┌──────────────┐
+ │ Return 202  │                      │ Save tokens  │
+ │ Accepted    │                      │ in DB        │
+ └─────────────┘                      └──────┬───────┘
+                                             │
+                                             ▼
+                                      ┌──────────────┐
+                                      │ Return 200   │
+                                      │ {accessToken,│
+                                      │ refreshToken,│
+                                      │ roles}       │
+                                      └──────────────┘
+
+ TOKEN REFRESH FLOW                   PROTECTED REQUEST
+ ─────────────────                   ─────────────────
+
+ POST /auth/refresh-token            GET /books/owner
+        │                                     │
+        ▼                                     ▼
+ ┌─────────────┐                      ┌──────────────┐
+ │ Extract     │                      │ JwtFilter    │
+ │ refresh JWT │                      │ Extract +    │
+ │ from header │                      │ Validate JWT │
+ └──────┬──────┘                      └──────┬───────┘
+        │                                     │
+        ▼                                     ▼
+ ┌─────────────┐                      ┌──────────────┐
+ │ Lookup in   │                      │ Check token  │
+ │ token table │                      │ not expired  │
+ │ (not expired│                      │ & not revoked│
+ │ & revoked)  │                      └──────┬───────┘
+ └──────┬──────┘                             │
+        │                                    ▼
+        ▼                             ┌──────────────┐
+ ┌─────────────┐                      │ @PreAuthorize│
+ │ Revoke all  │                      │ Check role   │
+ │ old tokens  │                      │ (USER/ADMIN) │
+ └──────┬──────┘                      └──────┬───────┘
+        │                                    │
+        ▼                                    ▼
+ ┌─────────────┐                      ┌──────────────┐
+ │ Generate new│                      │ Controller   │
+ │ access +    │                      │ -> Service   │
+ │ refresh JWT │                      │ -> Repository│
+ └──────┬──────┘                      │ -> Database  │
+        │                             └──────┬───────┘
+        ▼                                    │
+ ┌─────────────┐                             ▼
+ │ Return new  │                      ┌──────────────┐
+ │ tokens      │                      │ Return 200   │
+ └─────────────┘                      │ + Response   │
+                                      └──────────────┘
+```
+
+### Layer Responsibilities
+
+Each layer has a **single responsibility** and only communicates with the layer directly below it.
+
+| Layer | Package | Responsibility | Knows About |
+|-------|---------|---------------|-------------|
+| **Controller** | `controller/` | HTTP routing, request validation, response formatting | Service interfaces |
+| **Service** | `service/` + `service/impl/` | Business logic, transaction management, authorization rules | Repository, other Services |
+| **Repository** | `repository/` | Database queries, CRUD operations, JPA specifications | Entity classes |
+| **Entity** | `entity/` | Database table mappings, relationships, computed fields | Only JPA annotations |
+| **DTO** | `dto/request/` + `dto/response/` | Data transfer between layers, validation rules | Nothing (pure data) |
+| **Security** | `security/` | JWT generation/parsing, authentication filter, user lookup | Token repository, User entity |
+| **Common** | `common/` | Shared utilities, base classes, constants | Nothing (pure utilities) |
+
+### Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Interface + Impl for Services** | Enables mocking in unit tests, decouples controller from implementation, allows swapping implementations |
+| **DTO separation from Entity** | Prevents exposing database internals, allows different shapes for API input/output |
+| **JWT in database (token table)** | Enables token revocation, prevents reuse of expired tokens, supports logout functionality |
+| **Stateless sessions** | No server-side session storage, enables horizontal scaling, each request is self-contained |
+| **Ownership enforcement in Service** | Business rules (who can edit what) live in service layer, not in controller or database |
+| **Layer-based package structure** | Standard Spring Boot convention, easy for new developers, clear separation of concerns |
 
 ---
 
@@ -594,143 +875,144 @@ This design follows the principle: **"Admin is a platform manager, not a content
 
 ## Project Structure
 
+### Layer-Based Architecture (Backend)
+
+The backend follows a **layer-based package structure** with **Interface + Impl** pattern for the service layer, making the codebase clean, consistent, and easy to maintain.
+
 ```
-SpringBoot-Book-Social-Networking/
-├── .env                          # Environment variables (DO NOT COMMIT)
-├── .env.example                  # Environment template
-├── .gitignore
-├── docker-compose.yml            # PostgreSQL + MailDev
-├── run.sh                        # Dev runner script
-├── README.md
+book-network/src/main/java/com/endos/book/
 │
-├── book-network/                 # ===== BACKEND (Spring Boot) =====
-│   ├── pom.xml
-│   ├── mvnw / mvnw.cmd
-│   └── src/main/
-│       ├── java/com/endos/book/
-│       │   ├── BookNetworkApiApplication.java   # Entry point + role init
-│       │   │
-│       │   ├── auth/               # Authentication module
-│       │   │   ├── AuthenticationController.java
-│       │   │   ├── AuthenticationService.java
-│       │   │   ├── AuthenticationRequest.java
-│       │   │   ├── AuthenticationResponse.java
-│       │   │   └── RegistrationRequest.java
-│       │   │
-│       │   ├── book/               # Book management module
-│       │   │   ├── Book.java
-│       │   │   ├── BookController.java
-│       │   │   ├── BookMapper.java
-│       │   │   ├── BookRepository.java
-│       │   │   ├── BookRequest.java
-│       │   │   ├── BookResponse.java
-│       │   │   ├── BookService.java
-│       │   │   ├── BookSpecification.java
-│       │   │   └── BorrowedBookResponse.java
-│       │   │
-│       │   ├── feedback/           # Feedback module
-│       │   │   ├── Feedback.java
-│       │   │   ├── FeedbackController.java
-│       │   │   ├── FeedbackService.java
-│       │   │   ├── FeedbackRequest.java
-│       │   │   └── FeedbackResponse.java
-│       │   │
-│       │   ├── user/               # User management module
-│       │   │   ├── User.java
-│       │   │   ├── UserController.java
-│       │   │   ├── UserService.java
-│       │   │   ├── UserResponse.java
-│       │   │   ├── UserRepository.java
-│       │   │   ├── Token.java
-│       │   │   └── TokenRepository.java
-│       │   │
-│       │   ├── role/               # Role management
-│       │   │   ├── Role.java
-│       │   │   └── RoleRepository.java
-│       │   │
-│       │   ├── security/           # Security configuration
-│       │   │   ├── SecurityConfig.java
-│       │   │   ├── JwtFilter.java
-│       │   │   ├── JwtService.java
-│       │   │   └── UserDetailsServiceImpl.java
-│       │   │
-│       │   ├── email/              # Email service
-│       │   │   ├── EmailService.java
-│       │   │   └── EmailTemplateName.java
-│       │   │
-│       │   ├── file/               # File storage
-│       │   │   ├── FileStorageService.java
-│       │   │   └── FileUtils.java
-│       │   │
-│       │   ├── handler/            # Exception handling
-│       │   │   ├── GlobalExceptionHandler.java
-│       │   │   ├── BusinessErrorCodes.java
-│       │   │   └── ExceptionResponse.java
-│       │   │
-│       │   ├── history/            # Borrow history
-│       │   │   ├── BookTransactionHistory.java
-│       │   │   └── BookTransactionHistoryRepository.java
-│       │   │
-│       │   ├── common/             # Shared components
-│       │   │   ├── PageResponse.java
-│       │   │   └── BaseEntity.java
-│       │   │
-│       │   ├── config/             # App configuration
-│       │   │   ├── BeansConfig.java
-│       │   │   ├── ApplicationAuditAware.java
-│       │   │   └── OpenApiConfig.java
-│       │   │
-│       │   └── exception/
-│       │       └── OperationNotPermittedException.java
-│       │
-│       └── resources/
-│           ├── application.yml
-│           ├── application-dev.yml
-│           └── templates/
-│               └── activate_account.html
+├── BookNetworkApiApplication.java        # Entry point + role initialization
 │
-└── book-network-frontend/         # ===== FRONTEND (Angular) =====
-    ├── package.json
-    ├── angular.json
-    └── src/app/
-        ├── app.module.ts
-        ├── app-routing.module.ts
-        │
-        ├── pages/                  # Public pages
-        │   ├── login/
-        │   ├── register/
-        │   └── activate-account/
-        │
-        ├── modules/book/           # Book module (lazy-loaded)
-        │   ├── book.module.ts
-        │   ├── book-routing.module.ts
-        │   │
-        │   ├── pages/
-        │   │   ├── main/
-        │   │   ├── book-list/
-        │   │   ├── book-details/
-        │   │   ├── my-books/
-        │   │   ├── manage-book/
-        │   │   ├── borrowed-book-list/
-        │   │   ├── return-books/
-        │   │   └── manage-users/       # Admin panel
-        │   │
-        │   └── components/
-        │       ├── menu/               # Role-aware navbar
-        │       ├── book-card/
-        │       └── rating/
-        │
-        └── services/
-            ├── token/token.service.ts      # JWT + role management
-            ├── interceptor/http-token.interceptor.ts
-            ├── guard/auth.guard.ts
-            ├── models/                     # TypeScript interfaces
-            ├── services/                   # API services
-            │   ├── authentication.service.ts
-            │   ├── book.service.ts
-            │   ├── feedback.service.ts
-            │   └── user.service.ts
-            └── fn/                         # Generated API functions
+├── controller/                           # REST API Endpoints
+│   ├── AuthenticationController.java     #   POST /auth/register, /auth/authenticate
+│   ├── BookController.java               #   CRUD /books, borrow, return
+│   ├── FeedbackController.java           #   CRUD /feedbacks
+│   └── UserController.java               #   Admin user management
+│
+├── dto/                                  # Data Transfer Objects
+│   ├── request/                          #   Incoming request models
+│   │   ├── AuthenticationRequest.java
+│   │   ├── RegistrationRequest.java
+│   │   ├── BookRequest.java
+│   │   └── FeedbackRequest.java
+│   └── response/                         #   Outgoing response models
+│       ├── AuthenticationResponse.java
+│       ├── BookResponse.java
+│       ├── BorrowedBookResponse.java
+│       ├── FeedbackResponse.java
+│       └── UserResponse.java
+│
+├── entity/                               # JPA Entity / Database Table Mappings
+│   ├── BaseEntity.java                   #   Abstract base (id, createdDate, auditing)
+│   ├── Book.java                         #   book table
+│   ├── BookTransactionHistory.java       #   book_transaction_history table
+│   ├── Feedback.java                     #   feedback table
+│   ├── Role.java                         #   role table (USER, ADMIN)
+│   ├── Token.java                        #   token table (JWT storage)
+│   └── User.java                         #   _user table (implements UserDetails)
+│
+├── repository/                           # Spring Data JPA Repositories
+│   ├── BookRepository.java               #   Book queries + JpaSpecificationExecutor
+│   ├── BookTransactionHistoryRepository.java  # Borrow/return queries
+│   ├── FeedbackRepository.java           #   Feedback queries
+│   ├── RoleRepository.java               #   Role lookups
+│   ├── TokenRepository.java              #   JWT token queries
+│   └── UserRepository.java               #   User lookups
+│
+├── service/                              # Business Logic (Interface + Impl)
+│   ├── AuthService.java                  #   Interface
+│   ├── BookService.java                  #   Interface
+│   ├── EmailService.java                 #   Interface
+│   ├── FeedbackService.java              #   Interface
+│   ├── FileStorageService.java           #   Interface
+│   ├── UserService.java                  #   Interface
+│   ├── BookMapper.java                   #   Book entity <-> DTO mapper
+│   ├── FeedbackMapper.java               #   Feedback entity <-> DTO mapper
+│   └── impl/                             #   Implementations
+│       ├── AuthServiceImpl.java          #     Register, login, activate, refresh
+│       ├── BookServiceImpl.java          #     Book CRUD, borrow/return logic
+│       ├── EmailServiceImpl.java         #     Thymeleaf email sending
+│       ├── FeedbackServiceImpl.java      #     Feedback CRUD
+│       ├── FileStorageServiceImpl.java   #     Local file storage
+│       └── UserServiceImpl.java          #     Admin user management
+│
+├── security/                             # JWT & Security
+│   ├── SecurityConfig.java               #   CORS, filter chain, stateless sessions
+│   ├── JwtFilter.java                    #   Token validation filter
+│   ├── JwtService.java                   #   Token generation & parsing
+│   └── UserDetailsServiceImpl.java       #   User authentication lookup
+│
+├── config/                               # Application Configuration
+│   ├── BeansConfig.java                  #   PasswordEncoder, AuthenticationManager, CORS
+│   ├── ApplicationAuditAware.java        #   JPA auditing (createdBy/modifiedBy)
+│   └── OpenApiConfig.java                #   Swagger UI / OpenAPI 3 config
+│
+├── exception/                            # Error Handling
+│   ├── GlobalExceptionHandler.java       #   @RestControllerAdvice
+│   ├── BusinessErrorCodes.java           #   Custom error codes (300-306)
+│   ├── ExceptionResponse.java            #   Error response DTO
+│   └── OperationNotPermittedException.java  # Ownership violation exception
+│
+└── common/                               # Shared Utilities
+    ├── PageResponse.java                 #   Generic paginated response wrapper
+    ├── BookSpecification.java            #   JPA Specification for book queries
+    ├── EmailTemplateName.java            #   Email template enum
+    └── FileUtils.java                    #   File read utility
+```
+
+### Package Dependency Flow
+
+```
+controller → service (interface) → service.impl (implementation)
+                                      ↓
+                                  repository → entity
+                                      ↓
+                                   common/dto
+```
+
+### Frontend (Angular)
+
+```
+book-network-frontend/src/app/
+├── app.module.ts
+├── app-routing.module.ts
+│
+├── pages/                              # Public pages
+│   ├── login/
+│   ├── register/
+│   └── activate-account/
+│
+├── modules/book/                       # Book module (lazy-loaded)
+│   ├── book.module.ts
+│   ├── book-routing.module.ts
+│   │
+│   ├── pages/
+│   │   ├── main/
+│   │   ├── book-list/
+│   │   ├── book-details/
+│   │   ├── my-books/
+│   │   ├── manage-book/
+│   │   ├── borrowed-book-list/
+│   │   ├── return-books/
+│   │   └── manage-users/               # Admin panel
+│   │
+│   └── components/
+│       ├── menu/                       # Role-aware navbar
+│       ├── book-card/
+│       └── rating/
+│
+└── services/
+    ├── token/token.service.ts          # JWT + role management
+    ├── interceptor/http-token.interceptor.ts
+    ├── guard/auth.guard.ts
+    ├── models/                         # TypeScript interfaces
+    ├── services/                       # API services
+    │   ├── authentication.service.ts
+    │   ├── book.service.ts
+    │   ├── feedback.service.ts
+    │   └── user.service.ts
+    └── fn/                             # Generated API functions
 ```
 
 ---

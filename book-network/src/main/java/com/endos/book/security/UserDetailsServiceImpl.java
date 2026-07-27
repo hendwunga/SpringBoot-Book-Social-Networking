@@ -1,6 +1,6 @@
 package com.endos.book.security;
 
-import com.endos.book.user.UserRepository;
+import com.endos.book.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;

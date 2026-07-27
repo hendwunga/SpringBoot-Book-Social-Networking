@@ -1,7 +1,7 @@
 package com.endos.book;
 
-import com.endos.book.role.Role;
-import com.endos.book.role.RoleRepository;
+import com.endos.book.entity.Role;
+import com.endos.book.repository.RoleRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -29,4 +29,3 @@ public class BookNetworkApiApplication {
         };
     }
 }
-

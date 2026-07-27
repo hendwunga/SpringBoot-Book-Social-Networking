@@ -1,7 +1,7 @@
 package com.endos.book.security;
 
-import com.endos.book.user.Token;
-import com.endos.book.user.TokenRepository;
+import com.endos.book.entity.Token;
+import com.endos.book.repository.TokenRepository;
 import io.jsonwebtoken.JwtException;
 import io.micrometer.common.lang.NonNull;
 import jakarta.servlet.FilterChain;
@@ -56,7 +56,6 @@ public class JwtFilter extends OncePerRequestFilter {
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-            // Cek apakah token ada di database dan valid
             Optional<Token> tokenOpt = tokenRepository.findByToken(jwt);
             boolean isTokenValid = tokenOpt
                     .map(t -> !t.isExpired() && !t.isRevoked())
