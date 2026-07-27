@@ -594,143 +594,144 @@ This design follows the principle: **"Admin is a platform manager, not a content
 
 ## Project Structure
 
+### Layer-Based Architecture (Backend)
+
+The backend follows a **layer-based package structure** with **Interface + Impl** pattern for the service layer, making the codebase clean, consistent, and easy to maintain.
+
 ```
-SpringBoot-Book-Social-Networking/
-├── .env                          # Environment variables (DO NOT COMMIT)
-├── .env.example                  # Environment template
-├── .gitignore
-├── docker-compose.yml            # PostgreSQL + MailDev
-├── run.sh                        # Dev runner script
-├── README.md
+book-network/src/main/java/com/endos/book/
 │
-├── book-network/                 # ===== BACKEND (Spring Boot) =====
-│   ├── pom.xml
-│   ├── mvnw / mvnw.cmd
-│   └── src/main/
-│       ├── java/com/endos/book/
-│       │   ├── BookNetworkApiApplication.java   # Entry point + role init
-│       │   │
-│       │   ├── auth/               # Authentication module
-│       │   │   ├── AuthenticationController.java
-│       │   │   ├── AuthenticationService.java
-│       │   │   ├── AuthenticationRequest.java
-│       │   │   ├── AuthenticationResponse.java
-│       │   │   └── RegistrationRequest.java
-│       │   │
-│       │   ├── book/               # Book management module
-│       │   │   ├── Book.java
-│       │   │   ├── BookController.java
-│       │   │   ├── BookMapper.java
-│       │   │   ├── BookRepository.java
-│       │   │   ├── BookRequest.java
-│       │   │   ├── BookResponse.java
-│       │   │   ├── BookService.java
-│       │   │   ├── BookSpecification.java
-│       │   │   └── BorrowedBookResponse.java
-│       │   │
-│       │   ├── feedback/           # Feedback module
-│       │   │   ├── Feedback.java
-│       │   │   ├── FeedbackController.java
-│       │   │   ├── FeedbackService.java
-│       │   │   ├── FeedbackRequest.java
-│       │   │   └── FeedbackResponse.java
-│       │   │
-│       │   ├── user/               # User management module
-│       │   │   ├── User.java
-│       │   │   ├── UserController.java
-│       │   │   ├── UserService.java
-│       │   │   ├── UserResponse.java
-│       │   │   ├── UserRepository.java
-│       │   │   ├── Token.java
-│       │   │   └── TokenRepository.java
-│       │   │
-│       │   ├── role/               # Role management
-│       │   │   ├── Role.java
-│       │   │   └── RoleRepository.java
-│       │   │
-│       │   ├── security/           # Security configuration
-│       │   │   ├── SecurityConfig.java
-│       │   │   ├── JwtFilter.java
-│       │   │   ├── JwtService.java
-│       │   │   └── UserDetailsServiceImpl.java
-│       │   │
-│       │   ├── email/              # Email service
-│       │   │   ├── EmailService.java
-│       │   │   └── EmailTemplateName.java
-│       │   │
-│       │   ├── file/               # File storage
-│       │   │   ├── FileStorageService.java
-│       │   │   └── FileUtils.java
-│       │   │
-│       │   ├── handler/            # Exception handling
-│       │   │   ├── GlobalExceptionHandler.java
-│       │   │   ├── BusinessErrorCodes.java
-│       │   │   └── ExceptionResponse.java
-│       │   │
-│       │   ├── history/            # Borrow history
-│       │   │   ├── BookTransactionHistory.java
-│       │   │   └── BookTransactionHistoryRepository.java
-│       │   │
-│       │   ├── common/             # Shared components
-│       │   │   ├── PageResponse.java
-│       │   │   └── BaseEntity.java
-│       │   │
-│       │   ├── config/             # App configuration
-│       │   │   ├── BeansConfig.java
-│       │   │   ├── ApplicationAuditAware.java
-│       │   │   └── OpenApiConfig.java
-│       │   │
-│       │   └── exception/
-│       │       └── OperationNotPermittedException.java
-│       │
-│       └── resources/
-│           ├── application.yml
-│           ├── application-dev.yml
-│           └── templates/
-│               └── activate_account.html
+├── BookNetworkApiApplication.java        # Entry point + role initialization
 │
-└── book-network-frontend/         # ===== FRONTEND (Angular) =====
-    ├── package.json
-    ├── angular.json
-    └── src/app/
-        ├── app.module.ts
-        ├── app-routing.module.ts
-        │
-        ├── pages/                  # Public pages
-        │   ├── login/
-        │   ├── register/
-        │   └── activate-account/
-        │
-        ├── modules/book/           # Book module (lazy-loaded)
-        │   ├── book.module.ts
-        │   ├── book-routing.module.ts
-        │   │
-        │   ├── pages/
-        │   │   ├── main/
-        │   │   ├── book-list/
-        │   │   ├── book-details/
-        │   │   ├── my-books/
-        │   │   ├── manage-book/
-        │   │   ├── borrowed-book-list/
-        │   │   ├── return-books/
-        │   │   └── manage-users/       # Admin panel
-        │   │
-        │   └── components/
-        │       ├── menu/               # Role-aware navbar
-        │       ├── book-card/
-        │       └── rating/
-        │
-        └── services/
-            ├── token/token.service.ts      # JWT + role management
-            ├── interceptor/http-token.interceptor.ts
-            ├── guard/auth.guard.ts
-            ├── models/                     # TypeScript interfaces
-            ├── services/                   # API services
-            │   ├── authentication.service.ts
-            │   ├── book.service.ts
-            │   ├── feedback.service.ts
-            │   └── user.service.ts
-            └── fn/                         # Generated API functions
+├── controller/                           # REST API Endpoints
+│   ├── AuthenticationController.java     #   POST /auth/register, /auth/authenticate
+│   ├── BookController.java               #   CRUD /books, borrow, return
+│   ├── FeedbackController.java           #   CRUD /feedbacks
+│   └── UserController.java               #   Admin user management
+│
+├── dto/                                  # Data Transfer Objects
+│   ├── request/                          #   Incoming request models
+│   │   ├── AuthenticationRequest.java
+│   │   ├── RegistrationRequest.java
+│   │   ├── BookRequest.java
+│   │   └── FeedbackRequest.java
+│   └── response/                         #   Outgoing response models
+│       ├── AuthenticationResponse.java
+│       ├── BookResponse.java
+│       ├── BorrowedBookResponse.java
+│       ├── FeedbackResponse.java
+│       └── UserResponse.java
+│
+├── entity/                               # JPA Entity / Database Table Mappings
+│   ├── BaseEntity.java                   #   Abstract base (id, createdDate, auditing)
+│   ├── Book.java                         #   book table
+│   ├── BookTransactionHistory.java       #   book_transaction_history table
+│   ├── Feedback.java                     #   feedback table
+│   ├── Role.java                         #   role table (USER, ADMIN)
+│   ├── Token.java                        #   token table (JWT storage)
+│   └── User.java                         #   _user table (implements UserDetails)
+│
+├── repository/                           # Spring Data JPA Repositories
+│   ├── BookRepository.java               #   Book queries + JpaSpecificationExecutor
+│   ├── BookTransactionHistoryRepository.java  # Borrow/return queries
+│   ├── FeedbackRepository.java           #   Feedback queries
+│   ├── RoleRepository.java               #   Role lookups
+│   ├── TokenRepository.java              #   JWT token queries
+│   └── UserRepository.java               #   User lookups
+│
+├── service/                              # Business Logic (Interface + Impl)
+│   ├── AuthService.java                  #   Interface
+│   ├── BookService.java                  #   Interface
+│   ├── EmailService.java                 #   Interface
+│   ├── FeedbackService.java              #   Interface
+│   ├── FileStorageService.java           #   Interface
+│   ├── UserService.java                  #   Interface
+│   ├── BookMapper.java                   #   Book entity <-> DTO mapper
+│   ├── FeedbackMapper.java               #   Feedback entity <-> DTO mapper
+│   └── impl/                             #   Implementations
+│       ├── AuthServiceImpl.java          #     Register, login, activate, refresh
+│       ├── BookServiceImpl.java          #     Book CRUD, borrow/return logic
+│       ├── EmailServiceImpl.java         #     Thymeleaf email sending
+│       ├── FeedbackServiceImpl.java      #     Feedback CRUD
+│       ├── FileStorageServiceImpl.java   #     Local file storage
+│       └── UserServiceImpl.java          #     Admin user management
+│
+├── security/                             # JWT & Security
+│   ├── SecurityConfig.java               #   CORS, filter chain, stateless sessions
+│   ├── JwtFilter.java                    #   Token validation filter
+│   ├── JwtService.java                   #   Token generation & parsing
+│   └── UserDetailsServiceImpl.java       #   User authentication lookup
+│
+├── config/                               # Application Configuration
+│   ├── BeansConfig.java                  #   PasswordEncoder, AuthenticationManager, CORS
+│   ├── ApplicationAuditAware.java        #   JPA auditing (createdBy/modifiedBy)
+│   └── OpenApiConfig.java                #   Swagger UI / OpenAPI 3 config
+│
+├── exception/                            # Error Handling
+│   ├── GlobalExceptionHandler.java       #   @RestControllerAdvice
+│   ├── BusinessErrorCodes.java           #   Custom error codes (300-306)
+│   ├── ExceptionResponse.java            #   Error response DTO
+│   └── OperationNotPermittedException.java  # Ownership violation exception
+│
+└── common/                               # Shared Utilities
+    ├── PageResponse.java                 #   Generic paginated response wrapper
+    ├── BookSpecification.java            #   JPA Specification for book queries
+    ├── EmailTemplateName.java            #   Email template enum
+    └── FileUtils.java                    #   File read utility
+```
+
+### Package Dependency Flow
+
+```
+controller → service (interface) → service.impl (implementation)
+                                      ↓
+                                  repository → entity
+                                      ↓
+                                   common/dto
+```
+
+### Frontend (Angular)
+
+```
+book-network-frontend/src/app/
+├── app.module.ts
+├── app-routing.module.ts
+│
+├── pages/                              # Public pages
+│   ├── login/
+│   ├── register/
+│   └── activate-account/
+│
+├── modules/book/                       # Book module (lazy-loaded)
+│   ├── book.module.ts
+│   ├── book-routing.module.ts
+│   │
+│   ├── pages/
+│   │   ├── main/
+│   │   ├── book-list/
+│   │   ├── book-details/
+│   │   ├── my-books/
+│   │   ├── manage-book/
+│   │   ├── borrowed-book-list/
+│   │   ├── return-books/
+│   │   └── manage-users/               # Admin panel
+│   │
+│   └── components/
+│       ├── menu/                       # Role-aware navbar
+│       ├── book-card/
+│       └── rating/
+│
+└── services/
+    ├── token/token.service.ts          # JWT + role management
+    ├── interceptor/http-token.interceptor.ts
+    ├── guard/auth.guard.ts
+    ├── models/                         # TypeScript interfaces
+    ├── services/                       # API services
+    │   ├── authentication.service.ts
+    │   ├── book.service.ts
+    │   ├── feedback.service.ts
+    │   └── user.service.ts
+    └── fn/                             # Generated API functions
 ```
 
 ---
