@@ -8,6 +8,10 @@ import { RequestBuilder } from '../../request-builder';
 
 
 export interface Confirm$Params {
+
+/**
+ * 6-digit activation code from email
+ */
   token: string;
 }
 

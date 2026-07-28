@@ -25,6 +25,10 @@ export class FeedbackService extends BaseService {
   static readonly SaveFeedbackPath = '/feedbacks';
 
   /**
+   * Submit feedback for a book.
+   *
+   * Cannot give feedback to your own book or archived/non-shareable books.
+   *
    * This method provides access to the full `HttpResponse`, allowing access to response headers.
    * To access only the response body, use `saveFeedback()` instead.
    *
@@ -35,6 +39,10 @@ export class FeedbackService extends BaseService {
   }
 
   /**
+   * Submit feedback for a book.
+   *
+   * Cannot give feedback to your own book or archived/non-shareable books.
+   *
    * This method provides access only to the response body.
    * To access the full response (for headers, for example), `saveFeedback$Response()` instead.
    *
@@ -50,6 +58,10 @@ export class FeedbackService extends BaseService {
   static readonly FindAllFeedbackByBookPath = '/feedbacks/book/{book-id}';
 
   /**
+   * Get all feedback for a book.
+   *
+   *
+   *
    * This method provides access to the full `HttpResponse`, allowing access to response headers.
    * To access only the response body, use `findAllFeedbackByBook()` instead.
    *
@@ -60,6 +72,10 @@ export class FeedbackService extends BaseService {
   }
 
   /**
+   * Get all feedback for a book.
+   *
+   *
+   *
    * This method provides access only to the response body.
    * To access the full response (for headers, for example), `findAllFeedbackByBook$Response()` instead.
    *

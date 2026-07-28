@@ -1,5 +1,6 @@
 package com.endos.book.repository;
 
+// Import entity dan Spring Data JPA
 import com.endos.book.entity.BookTransactionHistory;
 
 import org.springframework.data.domain.Page;
@@ -10,9 +11,10 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
+// Repository untuk entity BookTransactionHistory — menyediakan CRUD + query peminjaman
 public interface BookTransactionHistoryRepository extends JpaRepository<BookTransactionHistory, Integer> {
 
-
+    // Ambil semua buku yang dipinjam oleh user tertentu
     @Query("""
             SELECT history
             FROM BookTransactionHistory history
@@ -20,7 +22,8 @@ public interface BookTransactionHistoryRepository extends JpaRepository<BookTran
             """)
     Page<BookTransactionHistory> findAllBorrowedBooks(Pageable pageable, Integer userId);
 
-
+    // Ambil semua buku yang dipinjam orang lain, dimana user adalah pemiliknya
+    // Dipakai di /books/returned untuk owner melihat siapa yang meminjam bukunya
     @Query("""
             SELECT history
             FROM BookTransactionHistory history
@@ -28,6 +31,7 @@ public interface BookTransactionHistoryRepository extends JpaRepository<BookTran
             """)
     Page<BookTransactionHistory> findAllReturnedBooks(Pageable pageable, Integer userId);
 
+    // Cek apakah user tertentu sudah meminjam buku ini (dan belum return/approve)
     @Query("""
             SELECT
             (COUNT (*) > 0) AS isBorrowed
@@ -38,6 +42,7 @@ public interface BookTransactionHistoryRepository extends JpaRepository<BookTran
             """)
     boolean isAlreadyBorrowedByUser(@Param("bookId") Integer bookId, @Param("userId") Integer userId);
 
+    // Cek apakah buku ini sudah dipinjam oleh siapapun (dan belum di-approve)
     @Query("""
             SELECT
             (COUNT (*) > 0) AS isBorrowed
@@ -47,6 +52,8 @@ public interface BookTransactionHistoryRepository extends JpaRepository<BookTran
             """)
     boolean isAlreadyBorrowed(@Param("bookId") Integer bookId);
 
+    // Cari transaksi peminjaman berdasarkan bookId dan userId peminjam
+    // Syarat: belum returned, belum approved
     @Query("""
             SELECT transaction
             FROM BookTransactionHistory  transaction
@@ -57,6 +64,9 @@ public interface BookTransactionHistoryRepository extends JpaRepository<BookTran
             """)
     Optional<BookTransactionHistory> findByBookIdAndUserId(@Param("bookId") Integer bookId, @Param("userId") Integer userId);
 
+    // Cari transaksi berdasarkan bookId dan ownerId (pemilik buku)
+    // Syarat: sudah returned, tapi belum approved
+    // Dipakai saat owner mau approve pengembalian
     @Query("""
             SELECT transaction
             FROM BookTransactionHistory  transaction

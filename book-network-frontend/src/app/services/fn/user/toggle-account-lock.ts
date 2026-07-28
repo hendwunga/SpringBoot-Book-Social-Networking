@@ -7,18 +7,14 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 
-export interface UploadBookCoverPicture$Params {
-  'book-id': number;
-      body?: {
-'file': Blob;
-}
+export interface ToggleAccountLock$Params {
+  'user-id': number;
 }
 
-export function uploadBookCoverPicture(http: HttpClient, rootUrl: string, params: UploadBookCoverPicture$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
-  const rb = new RequestBuilder(rootUrl, uploadBookCoverPicture.PATH, 'post');
+export function toggleAccountLock(http: HttpClient, rootUrl: string, params: ToggleAccountLock$Params, context?: HttpContext): Observable<StrictHttpResponse<void>> {
+  const rb = new RequestBuilder(rootUrl, toggleAccountLock.PATH, 'patch');
   if (params) {
-    rb.path('book-id', params['book-id'], {});
-    rb.body(params.body, 'multipart/form-data');
+    rb.path('user-id', params['user-id'], {});
   }
 
   return http.request(
@@ -31,4 +27,4 @@ export function uploadBookCoverPicture(http: HttpClient, rootUrl: string, params
   );
 }
 
-uploadBookCoverPicture.PATH = '/books/cover/{book-id}';
+toggleAccountLock.PATH = '/users/{user-id}/lock';

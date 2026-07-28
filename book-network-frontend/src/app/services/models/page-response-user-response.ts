@@ -1,13 +1,12 @@
 /* tslint:disable */
 /* eslint-disable */
-import { UserResponse } from './user-response';
-
+import { UserResponse } from '../models/user-response';
 export interface PageResponseUserResponse {
-  content?: UserResponse[];
+  content?: Array<UserResponse>;
+  first?: boolean;
+  last?: boolean;
   number?: number;
   size?: number;
   totalElements?: number;
   totalPages?: number;
-  first?: boolean;
-  last?: boolean;
 }

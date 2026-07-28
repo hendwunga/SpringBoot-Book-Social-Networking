@@ -1,5 +1,6 @@
 package com.endos.book.config;
 
+// Import Swagger/OpenAPI annotations
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
@@ -10,7 +11,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.servers.Server;
 
-
+// Konfigurasi Swagger/OpenAPI — otomatis generate docs di /swagger-ui.html
 @OpenAPIDefinition(
         info = @Info(
                 contact = @Contact(
@@ -18,7 +19,7 @@ import io.swagger.v3.oas.annotations.servers.Server;
                         email = "hendrowunga073@gmail.com",
                         url = "https://github.com/hendrowunga/Book-Social-Networking"
                 ),
-                description = "This is the OpenAPI documentation for the Book Social Networking application, which provides a secure and comprehensive API for managing book-related social interactions. The documentation includes details about available endpoints, request/response formats, and authentication mechanisms.",
+                description = "This is the OpenAPI documentation for the Book Social Networking application...",
                 title = "Book Social Networking API Documentation",
                 version = "1.0",
                 license = @License(
@@ -39,10 +40,11 @@ import io.swagger.v3.oas.annotations.servers.Server;
         },
         security = {
                 @SecurityRequirement(
-                        name = "bearerAuth"
+                        name = "bearerAuth" // Semua endpoint butuh JWT
                 )
         }
 )
+// Skema autentikasi: Bearer JWT di header Authorization
 @SecurityScheme(
         name = "bearerAuth",
         description = "JWT authentication scheme for securing API endpoints.",
@@ -52,5 +54,5 @@ import io.swagger.v3.oas.annotations.servers.Server;
         in = SecuritySchemeIn.HEADER
 )
 public class OpenApiConfig {
-
+    // Konfigurasi murni annotations — tidak perlu method
 }

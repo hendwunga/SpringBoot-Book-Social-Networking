@@ -1,4 +1,6 @@
 package com.endos.book.exception;
+
+// Import Spring HTTP status
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
@@ -7,22 +9,23 @@ import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_IMPLEMENTED;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
+// Enum error codes bisnis — dipakai di GlobalExceptionHandler untuk response error
 @Getter
 public enum BusinessErrorCodes {
 
-    NO_CODE(0, NOT_IMPLEMENTED, "No code"),
+    NO_CODE(0, NOT_IMPLEMENTED, "No code"),                           // Default
     INCORRECT_CURRENT_PASSWORD(300, BAD_REQUEST, "Current password is incorrect"),
     NEW_PASSWORD_DOES_NOT_MATCH(301, BAD_REQUEST, "The new password does not match"),
-    ACCOUNT_LOCKED(302, FORBIDDEN, "User account is locked"),
-    ACCOUNT_DISABLED(303, FORBIDDEN, "User account is disabled"),
+    ACCOUNT_LOCKED(302, FORBIDDEN, "User account is locked"),        // Akun dikunci admin
+    ACCOUNT_DISABLED(303, FORBIDDEN, "User account is disabled"),    // Akun belum aktifasi
     BAD_CREDENTIALS(304, FORBIDDEN, "Login and / or Password is incorrect"),
     JWT_EXPIRED(305, UNAUTHORIZED, "Access token has expired. Please use the refresh token to get a new access token"),
     JWT_INVALID(306, UNAUTHORIZED, "Invalid JWT token"),
     ;
 
-    private final int code;
-    private final String description;
-    private final HttpStatus httpStatus;
+    private final int code;          // Kode error (300, 301, 302, ...)
+    private final String description; // Deskripsi error
+    private final HttpStatus httpStatus; // HTTP status code yang sesuai
 
     BusinessErrorCodes(int code, HttpStatus status, String description) {
         this.code = code;
